@@ -7,7 +7,7 @@ type timeSlot = {
   description: string;
   start: Date;
   end: Date;
-  color: string;
+  color_theme: string;
   dateCreated: string;
   resetIntervals: number;
   timer: timer;

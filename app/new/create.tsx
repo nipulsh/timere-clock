@@ -193,6 +193,7 @@ const Create = () => {
         dateCreated: new Date().toISOString(),
         resetIntervals: resetIntervals,
         durationDays: durationDays,
+        color_theme: form.color, // Add this line to satisfy the timeSlot type
       };
 
       // Save the timer and wait for completion

@@ -30,7 +30,6 @@ const TimerCard: React.FC<TimerProps> = ({ timer, onDelete }) => {
   const deleteTimer = useDelete();
 
   const handleTimerDelete = async (event: any) => {
-    // Prevent navigation when delete button is pressed
     event.preventDefault();
     event.stopPropagation();
 
@@ -63,11 +62,22 @@ const TimerCard: React.FC<TimerProps> = ({ timer, onDelete }) => {
   const displayTasks: task[] = timer.tasks?.slice(0, 2) || [];
   const hasMoreTasks = (timer.tasks?.length || 0) > 2;
 
+  // Use timer.color for theming
+  const themeColor = timer.color_theme || "#3b82f6"; // fallback to blue if not set
+  const themeColorBg = themeColor + "20"; // add transparency for bg (if hex)
+  const themeColorBorder = themeColor + "30"; // add transparency for border (if hex)
+
   return (
     <View className="mb-4">
       <Link href={`/timer/${timer.id}`} asChild>
         <TouchableOpacity>
-          <View className="bg-neutral-900 rounded-3xl p-6 mx-2 shadow-lg border border-neutral-700">
+          <View
+            className="bg-neutral-900 rounded-3xl p-6 mx-2 shadow-lg border border-neutral-700"
+            style={{
+              borderColor: themeColor,
+              shadowColor: themeColor,
+            }}
+          >
             {/* Header with title and delete button */}
             <View className="flex-row justify-between items-start mb-4">
               <View className="flex-1 mr-3">
@@ -85,15 +95,25 @@ const TimerCard: React.FC<TimerProps> = ({ timer, onDelete }) => {
 
               <TouchableOpacity
                 onPress={handleTimerDelete}
-                className="bg-red-500/20 p-3 rounded-full border border-red-500/30"
+                className="p-3 rounded-full"
+                style={{
+                  backgroundColor: themeColorBg,
+                  borderColor: themeColorBorder,
+                  borderWidth: 1,
+                }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                <Ionicons name="trash-outline" size={20} color={themeColor} />
               </TouchableOpacity>
             </View>
 
             {/* Timer Display */}
-            <View className="bg-neutral-800 rounded-2xl p-6 mb-4 items-center border border-neutral-600">
+            <View
+              className="bg-neutral-800 rounded-2xl p-6 mb-4 items-center border border-neutral-600"
+              style={{
+                borderColor: themeColor,
+              }}
+            >
               <Text className="text-4xl font-mono font-bold text-white mb-2">
                 {formatTime(totalSeconds)}
               </Text>
@@ -113,8 +133,14 @@ const TimerCard: React.FC<TimerProps> = ({ timer, onDelete }) => {
                     <View
                       key={task.id || index}
                       className="flex-row items-center bg-neutral-800 rounded-xl px-4 py-3 border border-neutral-600"
+                      style={{
+                        borderColor: themeColor,
+                      }}
                     >
-                      <View className="w-2 h-2 bg-blue-400 rounded-full mr-3" />
+                      <View
+                        className="w-2 h-2 rounded-full mr-3"
+                        style={{ backgroundColor: themeColor }}
+                      />
                       <Text
                         className="text-neutral-200 flex-1 text-sm"
                         numberOfLines={1}
@@ -139,8 +165,11 @@ const TimerCard: React.FC<TimerProps> = ({ timer, onDelete }) => {
             {/* Start Timer Button */}
             <View className="mt-4 pt-4 border-t border-neutral-700">
               <View className="flex-row items-center justify-center">
-                <Ionicons name="play-circle" size={24} color="#3b82f6" />
-                <Text className="text-blue-400 font-semibold ml-2">
+                <Ionicons name="play-circle" size={24} color={themeColor} />
+                <Text
+                  className="font-semibold ml-2"
+                  style={{ color: themeColor }}
+                >
                   Tap to Start Timer
                 </Text>
               </View>

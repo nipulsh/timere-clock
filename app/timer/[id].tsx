@@ -1,9 +1,9 @@
-// ActiveTimer.tsx - Component for the active timer screen
+// ActiveTimer.tsx - Fixed version
 import timeSlot from "@/constants/timeSlot";
 import useFetch from "@/hooks/useFetch";
 import usePost from "@/hooks/usePost";
 import { Ionicons } from "@expo/vector-icons";
-import clsx from "clsx";
+import { clsx } from "clsx";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -80,11 +80,13 @@ const ActiveTimer: React.FC<Props> = ({
       const initial =
         (timer.timer.initialHours || 0) * 3600 +
         (timer.timer.initialMinutes || 0) * 60 +
-        (timer.timer.initialSeconds || 0);
+        0;
 
       setInitialSeconds(initial);
       setSecondsLeft(timer.timer.secondsLeft || initial);
       setTaskList(timer.tasks || []);
+
+      console.log("Timer initialized:", timer);
 
       // Set timer state based on current status
       if (timer.timer.secondsLeft === 0) {
@@ -97,8 +99,10 @@ const ActiveTimer: React.FC<Props> = ({
     }
   }, [timer]);
 
-  // Calculate progress for circular indicator
-  const progress = initialSeconds > 0 ? secondsLeft / initialSeconds : 0;
+  // FIX 1: Corrected progress calculation for proper circle display
+  // Progress should be 0 when timer is full, 1 when timer is empty
+  const progress =
+    initialSeconds > 0 ? (initialSeconds - secondsLeft) / initialSeconds : 0;
   const strokeDashoffset = circumference * (1 - progress);
 
   // Save timer state to backend
@@ -125,7 +129,7 @@ const ActiveTimer: React.FC<Props> = ({
     [timer, saveTimer]
   );
 
-  // Handle app state changes (background/foreground)
+  // FIX 2: Improved background time handling to prevent doubling
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === "background" && timerState === "running") {
@@ -138,24 +142,33 @@ const ActiveTimer: React.FC<Props> = ({
         const timeInBackground = Math.floor(
           (Date.now() - backgroundTime) / 1000
         );
-        const newSecondsLeft = Math.max(0, secondsLeft - timeInBackground);
-        setSecondsLeft(newSecondsLeft);
-        setBackgroundTime(null);
 
-        // Save the updated time to backend
-        saveTimerState({
-          timer: {
-            initialSeconds: timer?.timer?.initialSeconds || 0,
-            initialHours: timer?.timer?.initialHours || 0,
-            initialMinutes: timer?.timer?.initialMinutes || 0,
-            id: timer?.timer?.id || "",
-            hoursLeft: timer?.timer?.hoursLeft || 0,
-            minutesLeft: timer?.timer?.minutesLeft || 0,
-            timesStopped: timer?.timer?.timesStopped || 0,
-            secondsLeft: newSecondsLeft,
-            isRunning: true,
-          },
-        });
+        // Only update if there was actual time in background
+        if (timeInBackground > 0) {
+          setSecondsLeft((prevSeconds) => {
+            const updated = Math.max(0, prevSeconds - timeInBackground);
+
+            // Save the updated time to backend
+            saveTimerState({
+              timer: {
+                initialSeconds: timer?.timer?.initialSeconds || 0,
+                initialHours: timer?.timer?.initialHours || 0,
+                initialMinutes: timer?.timer?.initialMinutes || 0,
+                id: timer?.timer?.id || "",
+                hoursLeft: timer?.timer?.hoursLeft || 0,
+                minutesLeft: timer?.timer?.minutesLeft || 0,
+                timesStopped: timer?.timer?.timesStopped || 0,
+                secondsLeft: updated,
+                isRunning: true,
+              },
+            });
+
+            return updated;
+          });
+        }
+
+        // Clear background time after processing
+        setBackgroundTime(null);
       }
     };
 
@@ -164,7 +177,7 @@ const ActiveTimer: React.FC<Props> = ({
       handleAppStateChange
     );
     return () => subscription?.remove();
-  }, [timerState, backgroundTime, secondsLeft, saveTimerState, timer]); // Fixed: Removed timer.timer from dependencies
+  }, [timerState, backgroundTime, saveTimerState, timer]);
 
   // Cleanup interval on unmount
   useEffect(() => {
@@ -258,6 +271,13 @@ const ActiveTimer: React.FC<Props> = ({
 
     const newState = timerState === "running" ? "paused" : "running";
     setTimerState(newState);
+
+    // FIX 3: Only set background time when starting timer
+    if (newState === "running") {
+      setBackgroundTime(Date.now());
+    } else {
+      setBackgroundTime(null);
+    }
 
     // Save play/pause state to backend
     await saveTimerState({
@@ -441,9 +461,10 @@ const ActiveTimer: React.FC<Props> = ({
     if (timerState === "cancelled") return "#ef4444";
     if (timerState === "paused") return "#f59e0b";
 
-    // Dynamic color based on progress
-    if (progress > 0.5) return "#10b981"; // green
-    if (progress > 0.25) return "#f59e0b"; // amber
+    // Dynamic color based on remaining time (not progress)
+    const timeRemaining = secondsLeft / initialSeconds;
+    if (timeRemaining > 0.5) return "#10b981"; // green
+    if (timeRemaining > 0.25) return "#f59e0b"; // amber
     return "#ef4444"; // red
   };
 
@@ -484,7 +505,8 @@ const ActiveTimer: React.FC<Props> = ({
 
   const completedTasksCount = taskList.filter((task) => task.completed).length;
   const totalTasksCount = taskList.length;
-  const progressPercentage = Math.round((1 - progress) * 100);
+  // FIX 4: Corrected progress percentage calculation
+  const progressPercentage = Math.round(progress * 100);
 
   return (
     <View className="flex-1 bg-black">
@@ -570,8 +592,8 @@ const ActiveTimer: React.FC<Props> = ({
                     timerState === "paused"
                       ? "bg-yellow-400"
                       : timerState === "completed"
-                      ? "bg-green-400"
-                      : "bg-red-400"
+                        ? "bg-green-400"
+                        : "bg-red-400"
                   )}
                 />
                 <Text className="text-gray-400 text-sm capitalize">
