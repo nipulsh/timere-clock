@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AuthLayout from "./_layout";
 
 const LoginScreen = () => {
   console.log("LoginScreen mounted");
@@ -280,7 +281,7 @@ const LoginScreen = () => {
     }
   };
   console.log("Current step:", currentStep);
-  return renderContent();
+  return <AuthLayout>{renderContent()}</AuthLayout>;
 };
 
 export default LoginScreen;
